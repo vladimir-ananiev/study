@@ -1,67 +1,90 @@
 stack = []
-def push(lexeme):
-    stack.insert(0, lexeme)
-#def push(lexemeType, lexemeText):
-#    push((lexemeType, lexemeText))
+def stackEmpty():
+    return len(stack) == 0
+def push(item):
+    stack.insert(0, item)
 def pop():
-    if stack.count == 0:
+    if stackEmpty():
         return None
     return stack.pop(0)
 def peek():
-    if stack.count == 0:
+    if stackEmpty():
         return None
     return stack[0]
+
+def add(n1, n2):
+    return n1 + n2
+def sub(n1, n2):
+    return n1 - n2
+def mul(n1, n2):
+    return n1 * n2
+def div(n1, n2):
+    return n1 / n2
+binaryOperations = {'+':add, '-':sub, '*':mul, '/':div}
 
 NotLexeme = ' '
 def lexemeTypeFromChar(char):
     if char in '.0123456789':
-        return 'n' # number
+        return 'n'  # number
     if char in '+-*/()':
-        return 'o' # operation
+        return 'o'  # operation
     if char in 'abcdefghijklmnopqrstuvwxyz':
-        return 'f' # function
-    return NotLexeme # not any lexeme
+        return 'f'  # function
+    return NotLexeme  # not any lexeme
     
 def extractLexems(expression):
-    lexemes = []
-    currentLexeme = (NotLexeme, '') # type and text
+    result = []
+    currentLexeme = (NotLexeme, '')  # type and text
     for char in expression + ' ':
         lexemeType = lexemeTypeFromChar(char)
         isNextLexeme = not ((lexemeType == currentLexeme[0]) and (lexemeType in 'nf'))
         if isNextLexeme:
             if currentLexeme[0] != NotLexeme:
-                lexemes.append(currentLexeme)
+                result.append(currentLexeme)
             currentLexeme = (lexemeType, str(char))
         else:
             if lexemeType != NotLexeme:
                 currentLexeme = (currentLexeme[0], currentLexeme[1] + char)
-    return lexemes
+    return result
                 
 def buildRPN(lexemes):
-    priority = {'+':1, '-':1, '*':2, '/':2}
+    priority = {'+': 1, '-': 1, '*': 2, '/': 2}
     result = []
+    st = stack
     for lexeme in lexemes:
         if lexeme[0] == 'n':
-            result.append(lexeme)
+            result.append(float(lexeme[1]))
         elif lexeme[0] == 'o':
-            if lexeme[1] == '(':
-                push(lexeme)
-            elif lexeme[1] == ')':
-                while (len(stack) != 0) and (peek()[1] != '('):
+            operation = lexeme[1]
+            if operation == '(':
+                push(operation)
+            elif operation == ')':
+                while peek() != '(':
                     result.append(pop())
-                pop() # '('
+                pop()  # '('
             else:
-                while (len(stack) != 0) and (priority[lexeme[1]] <= priority[peek()[1]]) and (peek()[1] != '('):
+                while (not stackEmpty()) and (peek() != '(') and (priority[operation] <= priority[peek()]):
                     result.append(pop())
-                push(lexeme)
-    while len(stack) != 0:
+                push(operation)
+    while not stackEmpty():
         result.append(pop())
     return result
-    
-lexemes = extractLexems(input())
-print(lexemes)
-rpn = buildRPN(lexemes)
-print(rpn)
-            
-                
-        
+
+def run(rpn):
+    for item in rpn:
+        if type(item) is float:
+            push(item)
+        else:
+            n2 = pop()
+            n1 = pop()
+            operationResult = binaryOperations[item](n1, n2)
+            push(operationResult)
+    return pop()
+
+while True:
+    lexemes = extractLexems(input())
+    print(lexemes)
+    rpn = buildRPN(lexemes)
+    print(rpn)
+    result = run(rpn)
+    print(result)
