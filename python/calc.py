@@ -1,3 +1,5 @@
+import math
+
 stack = []
 def stackEmpty():
     return len(stack) == 0
@@ -12,24 +14,27 @@ def peek():
         return None
     return stack[0]
 
-def add(n1, n2):
+def opAdd(n1, n2):
     return n1 + n2
-def sub(n1, n2):
+def opSub(n1, n2):
     return n1 - n2
-def mul(n1, n2):
+def opMul(n1, n2):
     return n1 * n2
-def div(n1, n2):
+def opDiv(n1, n2):
     return n1 / n2
-binaryOperations = {'+':add, '-':sub, '*':mul, '/':div}
+def opPow(n1, n2):
+    return n1 ** n2
+binaryOperations = {'+':opAdd, '-':opSub, '*':opMul, '/':opDiv, '^':opPow}
+unaryFunctions = {'abs':abs, 'sin':math.sin, 'cos':math.cos, 'round':round, 'round':round}
 
 NotLexeme = ' '
 def lexemeTypeFromChar(char):
     if char in '.0123456789':
         return 'n'  # number
-    if char in '+-*/()':
-        return 'o'  # operation
     if char in 'abcdefghijklmnopqrstuvwxyz':
-        return 'f'  # function
+        return 'f'  # function with one argument
+    if char in '+-*/^()':
+        return char
     return NotLexeme  # not any lexeme
     
 def extractLexems(expression):
@@ -41,31 +46,52 @@ def extractLexems(expression):
         if isNextLexeme:
             if currentLexeme[0] != NotLexeme:
                 result.append(currentLexeme)
-            currentLexeme = str(lexemeType) + char
-        else:
-            if lexemeType != NotLexeme:
+            if lexemeType in 'nf':
+                currentLexeme = str(lexemeType) + char
+            else:
+                currentLexeme = char
+        elif lexemeType != NotLexeme:
                 currentLexeme += char
     return result
                 
 def buildRPN(lexemes):
-    priority = {'+': 1, '-': 1, '*': 2, '/': 2}
+    priority = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
     result = []
     stack.clear()
     for lexeme in lexemes:
-        if lexeme[0] == 'n':
+        lexemeType = lexeme[0]
+        if lexemeType == 'n':
             result.append(float(lexeme[1:]))
-        elif lexeme[0] == 'o':
-            operation = lexeme[1:]
-            if operation == '(':
-                push(operation)
-            elif operation == ')':
-                while peek() != '(':
-                    result.append(pop())
-                pop()  # '('
-            else:
-                while (not stackEmpty()) and (peek() != '(') and (priority[operation] <= priority[peek()]):
-                    result.append(pop())
-                push(operation)
+            continue
+        if lexemeType == 'f':
+            push(lexeme)
+            continue
+        if lexemeType == '(':
+            push(lexemeType)
+            continue
+        if lexemeType == ')':
+            while (not stackEmpty()) and (peek() != '('):
+                result.append(pop())
+            pop()  # '('
+            continue
+        operation = lexemeType
+        while not stackEmpty():
+            stackTop = peek()
+            if stackTop == '(':
+                break
+            if stackTop[0] == 'f':
+                result.append(pop())
+                continue
+            stackTopPriority = priority[stackTop]
+            operationPriority = priority[operation]
+            if (stackTopPriority > operationPriority):
+                result.append(pop())
+                continue
+            if ((stackTopPriority == operationPriority) and (stackTop in '+-*/')):
+                result.append(pop())
+                continue
+            break
+        push(operation)
     while not stackEmpty():
         result.append(pop())
     return result
@@ -75,15 +101,19 @@ def run(rpn):
     for item in rpn:
         if type(item) is float:
             push(item)
+        elif item[0] == 'f':
+            number = pop()
+            functionName = item[1:]
+            push(unaryFunctions[functionName](number))
         else:
-            n2 = pop()
-            n1 = pop()
-            push(binaryOperations[item](n1, n2))
+            number2 = pop()
+            number1 = pop()
+            push(binaryOperations[item](number1, number2))
     return pop()
 
 testExpressions = [
-    ('1', '1')
-    , ('2', '1+1')
+    ('2.', '1+1.1')
+    , ('.1', '.1')
     , ('10', '1+2+3+4')
     , ('9', '3*(2+1)')
     , ('11.9', '3.5 * (2+1.4)')
@@ -116,11 +146,11 @@ for te in testExpressions:
     if pointAt != -1:
         decimals = len(te[0]) - pointAt - 1
     roundedResult = round(res, decimals)
-    # print(pointAt, decimals, len(te[0]))
     if float(te[0]) == roundedResult:
         print('OK:', te[0], '==', te[1])
     else:
         print('Fail:', te[0], '!=', roundedResult, te[1])
+        print(pointAt, decimals, len(te[0]))
 
 while True:
     expression = input()
