@@ -25,7 +25,18 @@ def opDiv(n1, n2):
 def opPow(n1, n2):
     return n1 ** n2
 binaryOperations = {'+':opAdd, '-':opSub, '*':opMul, '/':opDiv, '^':opPow}
-unaryFunctions = {'abs':abs, 'sin':math.sin, 'cos':math.cos, 'round':round, 'round':round}
+
+unaryFunctions = {'abs':abs
+                  , 'round':round
+                  , 'fabs':math.fabs
+                  , 'ceil':math.ceil
+                  , 'floor':math.floor
+                  , 'trunc':math.trunc
+                  , 'factorial':math.factorial
+                  , 'exp':math.exp
+                  , 'sin':math.sin
+                  , 'cos':math.cos
+                  , 'tan':math.tan}
 
 NotLexeme = ' '
 def lexemeTypeFromChar(char):
@@ -38,9 +49,10 @@ def lexemeTypeFromChar(char):
     return NotLexeme  # not any lexeme
     
 def extractLexems(expression):
+    expression = ('(' + expression.replace(' ', '') + ')').replace('(-', '(0-') + ' '
     result = []
     currentLexeme = NotLexeme
-    for char in expression + ' ':
+    for char in expression:
         lexemeType = lexemeTypeFromChar(char)
         isNextLexeme = not ((lexemeType == currentLexeme[0]) and (lexemeType in 'nf'))
         if isNextLexeme:
